@@ -1,0 +1,51 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  background-color: #919af9;
+}
+
+.loader {
+  margin: 20% 50%;
+  transform: translateX(-50%);
+  font-size: 40px;
+  color: #000;
+  display: inline-block;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 400;
+  position: relative;
+}
+.loader:after {
+  content: 'Please wait';
+  position: relative;
+  z-index: 5;
+}
+.loader:before {
+  content: '';
+  height: 6px;
+  border: 1px solid;
+  border-radius: 10px;
+  width: 100%;
+  position: absolute;
+  bottom: 0px;
+  background: linear-gradient(#515ddd 100%, transparent 0) no-repeat;
+  background-size: 0% auto;
+  animation: 10s londingLine linear infinite;
+}
+
+/* Animation */
+
+@keyframes londingLine {
+  to {
+    background-size: 100% auto;
+  }
+}
+.cat-info {
+  display: flex;
+  column-gap: 20px;
+}
+.description {
+  font-size: 20px;
+  font-weight: 500;
+  max-width: 50%;
+}
