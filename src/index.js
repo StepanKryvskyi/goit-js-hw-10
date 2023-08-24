@@ -1,74 +1,94 @@
-import Notiflix, { Notify } from 'notiflix';
+import Notiflix from 'notiflix';
 import SlimSelect from 'slim-select';
 
-import {
-  fetchBreeds,
-  fetchCatByBreed,
-  createBreedSelectMarkup,
-  createCatMarkup,
-} from './cat-api';
+import { fetchBreeds, fetchCatByBreed } from './cat-api';
 
-const refs = {
-  breedSelect: document.querySelector('.breed-select'),
+const elements = {
+  breedSelect: document.getElementById('breed-select'),
   catInfo: document.getElementById('catInfo'),
-  loaderEl: document.querySelector('.loader'),
-  errorEl: document.querySelector('.error'),
+  loader: document.querySelector('.loader'),
+  error: document.querySelector('.error'),
 };
 
-refs.breedSelect.addEventListener('change', onCatId);
+elements.breedSelect.addEventListener('change', onBreedSelectChange);
 
-fetchBreeds()
-  .then(arr => {
-    load();
+const notiflixOptions = {
+  position: 'center-center',
+  timeout: 3000,
+  width: '400px',
+  fontSize: '24px',
+};
 
-    refs.breedSelect.insertAdjacentHTML(
-      'beforeend',
-      createBreedSelectMarkup(arr.data)
-    );
-  })
-  .then(() => slim())
-  .catch(fetchError);
-
-function onCatId(e) {
-  const id = e.target.value;
-  fetchCatByBreed(id)
-    .then(arr => {
-      load();
-
-      const catData = arr.data;
-
-      if (!Array.isArray(catData) || catData.length === 0 || !catData[0].url) {
-        refs.catInfo.innerHTML = '';
-        fetchError('Дані для цієї породи відсутні');
-        return;
-      }
-
-      refs.catInfo.innerHTML = createCatMarkup(catData);
-      success(); // Виклик функції успіху
-    })
-    .catch(fetchError);
+function onBreedSelectChange(e) {
+  const breedId = e.target.value;
+  fetchCatByBreed(breedId).then(displayCatInfo).catch(displayError);
 }
 
-function success() {
-  Notify.success('Search was successful', '');
+function createBreedSelectOptions(breeds) {
+  return breeds
+    .map(({ id, name }) => `<option value="${id}">${name}</option>`)
+    .join('');
 }
 
-function fetchError(message) {
-  Notify.failure(message, {
-    position: 'center-center',
-    timeout: 3000,
-    width: '400px',
-    fontSize: '24px',
-  });
+function createCatInfo(catData) {
+  return catData
+    .map(
+      ({ url, breeds: [{ name, temperament, description }] }) => `
+      <img src="${url}" alt="${name}" width="800" height="500" />
+      <div>
+        <h1 class="title">${name}</h1>
+        <p class="description">${description}</p>
+        <h2>Temperament:</h2>
+        <p class="description">${temperament}</p>
+      </div>
+    `
+    )
+    .join('');
 }
 
-function load() {
-  refs.breedSelect.hidden = false;
-  refs.loaderEl.classList.remove('loader');
+function displayCatInfo(catData) {
+  if (!catData.length || !catData[0].url) {
+    elements.catInfo.innerHTML = '';
+    displayError('Дані для цієї породи відсутні');
+    return;
+  }
+  elements.catInfo.innerHTML = createCatInfo(catData);
+  Notiflix.Notify.success('Search was successful', '');
+  elements.catInfo.style.display = 'block';
 }
 
-function slim() {
+function displayError(message) {
+  elements.catInfo.innerHTML = '';
+  Notiflix.Notify.failure(message, notiflixOptions);
+}
+
+function showLoader() {
+  elements.breedSelect.hidden = true;
+  elements.loader.classList.add('loader');
+}
+
+function hideLoader() {
+  elements.breedSelect.hidden = false;
+  elements.loader.classList.remove('loader');
+}
+
+function initSlimSelect() {
   new SlimSelect({
-    select: refs.breedSelect,
+    select: elements.breedSelect,
   });
 }
+
+async function initApp() {
+  showLoader();
+  try {
+    const breeds = await fetchBreeds();
+    elements.breedSelect.innerHTML = createBreedSelectOptions(breeds);
+    initSlimSelect();
+  } catch (error) {
+    displayError(error.message);
+  } finally {
+    hideLoader();
+  }
+}
+
+initApp();
