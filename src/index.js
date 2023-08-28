@@ -1,7 +1,7 @@
 import Notiflix from 'notiflix';
 import SlimSelect from 'slim-select';
 
-import { fetchBreeds, fetchCatByBreed } from './cat-api';
+import { fetchBreeds, fetchCatByBreed, BREEDS_ENDPOINT } from './cat-api';
 
 const elements = {
   breedSelect: document.getElementById('breed-select'),
@@ -9,6 +9,10 @@ const elements = {
   loader: document.querySelector('.loader'),
   error: document.querySelector('.error'),
 };
+
+if (BREEDS_ENDPOINT !== 'breeds') {
+  elements.breedSelect.classList.add('hidden');
+}
 
 elements.breedSelect.addEventListener('change', onBreedSelectChange);
 
@@ -21,7 +25,22 @@ const notiflixOptions = {
 
 function onBreedSelectChange(e) {
   const breedId = e.target.value;
-  fetchCatByBreed(breedId).then(displayCatInfo).catch(displayError);
+
+  // Викликайте функцію fetchCatByBreed з ключовим словом "then" для обробки результату
+  fetchCatByBreed(breedId)
+    .then(catData => {
+      if (!catData.length || !catData[0].url) {
+        elements.catInfo.innerHTML = '';
+        displayError('Дані для цієї породи відсутні');
+        return;
+      }
+      elements.catInfo.innerHTML = createCatInfo(catData);
+      Notiflix.Notify.success('Search was successful', '');
+      elements.catInfo.style.display = 'block';
+    })
+    .catch(error => {
+      displayError(error.message);
+    });
 }
 
 function createBreedSelectOptions(breeds) {
@@ -46,29 +65,16 @@ function createCatInfo(catData) {
     .join('');
 }
 
-function displayCatInfo(catData) {
-  if (!catData.length || !catData[0].url) {
-    elements.catInfo.innerHTML = '';
-    displayError('Дані для цієї породи відсутні');
-    return;
-  }
-  elements.catInfo.innerHTML = createCatInfo(catData);
-  Notiflix.Notify.success('Search was successful', '');
-  elements.catInfo.style.display = 'block';
-}
-
 function displayError(message) {
   elements.catInfo.innerHTML = '';
   Notiflix.Notify.failure(message, notiflixOptions);
 }
 
 function showLoader() {
-  elements.breedSelect.hidden = true;
   elements.loader.classList.add('loader');
 }
 
 function hideLoader() {
-  elements.breedSelect.hidden = false;
   elements.loader.classList.remove('loader');
 }
 
@@ -78,17 +84,20 @@ function initSlimSelect() {
   });
 }
 
-async function initApp() {
+function initApp() {
   showLoader();
-  try {
-    const breeds = await fetchBreeds();
-    elements.breedSelect.innerHTML = createBreedSelectOptions(breeds);
-    initSlimSelect();
-  } catch (error) {
-    displayError(error.message);
-  } finally {
-    hideLoader();
-  }
+  
+  fetchBreeds()
+    .then(breeds => {
+      elements.breedSelect.innerHTML = createBreedSelectOptions(breeds);
+      initSlimSelect();
+    })
+    .catch(error => {
+      displayError(error.message);
+    })
+    .finally(() => {
+      hideLoader();
+    });
 }
 
 initApp();

@@ -24,10 +24,10 @@ body {
 
 .loader::after {
   content: '';
-  height: 6px;
+  height: 6px; 
   border: 1px solid;
   border-radius: 10px;
-  width: 100%;
+  width: 300px;
   position: absolute;
   bottom: 0;
   background: linear-gradient(#515ddd, transparent);
